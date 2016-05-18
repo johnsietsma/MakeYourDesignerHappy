@@ -7,44 +7,63 @@ using UnityEngine.Assertions;
  */
 public class EnemyController : MonoBehaviour
 {
-    public enum State { Idle, Patrol };
+    public enum State { Idle, Patrol, Count };
 
-    [SerializeField]
-    private float IdleWaitTime = 2;
+    // ---- Public variables ----
+
+    // Idle State Variables
+    [Header("Idle State")]
+    public float IdleWaitTime = 2;
     public float IdleHoverDistance = 0.02f;
 
+    // Patrol State Variables
+    [Header("Patrol State")]
     public float PatrolWalkTime = 4;
     public float PatrolDistance = 6;
     public float PatrolSpeed = 5f;
 
-    private enum PatrolDirection { Left, Right };
-    private PatrolDirection patrolDirection;
+    // State Machine Variables
+    [Header("State Machine")]
+    public State startState;
+    [ReadOnly] public State currentState;
 
-    [ReadOnly]
-    public State currentState;
 
+    // ---- Private Variables ----
+
+    // The dierction of the patrol
+    private enum PatrolDirection { Right, Up, Left, Down, Count };
+    private PatrolDirection currentPatrolDirection = PatrolDirection.Right;
+
+    // The time we entered the current state
     private float stateStartTime;
 
+    // The state machine delegates
     private delegate void UpdateBehaviour();
     private UpdateBehaviour[] behaviours;
 
 	void Start () {
+        // Setup the delegates that control the state machine
         behaviours = new UpdateBehaviour[]
         {
             UpdateIdle,
             UpdatePatrol
         };
 
-        ChangeState(State.Idle);
+        // Change to the initial state
+        ChangeState(startState);
 	}
 	
 	void Update () {
+        // Make sure that the delegate we need actually exists
+        // This catches if a new state is added but no delegate is provided for it
         int currentStateIndex = (int)currentState;
         Assert.IsTrue(currentStateIndex < behaviours.Length);
 
+        // Call the delegate for the current state
         behaviours[currentStateIndex]();
 	}
 
+    // The Update function for the Idle State
     void UpdateIdle()
     {
         // Move up and down on the spot
@@ -66,26 +85,30 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    // The Update function for the Patrol State
     void UpdatePatrol()
     {
-        // Reverse direction if we've moved far enough from the origin
-        if (transform.position.magnitude > PatrolDistance)
+        // The normalized direction of travel
+        Vector3 patrolNormal = GetPatrolDirectionNormal(currentPatrolDirection);
+
+        // The position we're heading for
+        Vector3 goalPosition = patrolNormal * PatrolDistance;
+
+        // The vector that moves us to the goal position
+        Vector3 goalVector = goalPosition - transform.position;
+
+        // Returns positive if the goal vector is in the same direction as the patrol vector
+        if (Vector3.Dot(goalVector, patrolNormal) < 0 )
         {
-            patrolDirection = patrolDirection == PatrolDirection.Left ? PatrolDirection.Right : PatrolDirection.Left;
+            // We're past the goal, change direction
+            currentPatrolDirection = (PatrolDirection)(((int)currentPatrolDirection + 1) % (int)PatrolDirection.Count);
         }
 
         // Calculate how far we'll move in this frame
         float moveDistance = PatrolSpeed * Time.deltaTime;
 
         // Move the direction we're patrolling
-        if ( patrolDirection==PatrolDirection.Left)
-        {
-            transform.Translate(-moveDistance, 0, 0);
-        }
-        else if(patrolDirection == PatrolDirection.Right)
-        {
-            transform.Translate(moveDistance, 0, 0);
-        }
+        transform.Translate(patrolNormal * moveDistance);
 
         // Change the state if we've bee patrolling for long enough
         if (stateStartTime + PatrolWalkTime < Time.realtimeSinceStartup)
@@ -94,6 +117,21 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    // Return a normalized Vector3 which points in the direction of travel
+    private Vector3 GetPatrolDirectionNormal( PatrolDirection patrolDirection )
+    {
+        Vector3 patrolDirectionNormal = Vector3.zero;
+        switch(patrolDirection)
+        {
+            case PatrolDirection.Right: patrolDirectionNormal.x = 1; break;
+            case PatrolDirection.Up: patrolDirectionNormal.z = 1; break;
+            case PatrolDirection.Left: patrolDirectionNormal.x = -1; break;
+            case PatrolDirection.Down: patrolDirectionNormal.z = -1; break;
+        }
+        return patrolDirectionNormal;
+    }
+
+    // Change the state we're in and reset the start time.
     private void ChangeState( State newState )
     {
         stateStartTime = Time.realtimeSinceStartup;

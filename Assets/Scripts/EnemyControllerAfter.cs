@@ -5,7 +5,7 @@ using UnityEngine.Assertions;
  * Amazing Enemy AI that can Idle or Patrol.
  * This class is used to demonstrate the use of Attributes to change how variables are displayed in the Unity3D editor.
  */
-public class EnemyController : MonoBehaviour
+public class EnemyControllerAfter : MonoBehaviour
 {
     public enum State { Idle, Patrol, Count };
 
@@ -13,19 +13,33 @@ public class EnemyController : MonoBehaviour
 
     // Idle State Variables
     [Header("Idle State")]
-    public float IdleWaitTime = 2;
-    public float IdleHoverDistance = 0.02f;
+
+    [Tooltip("The time to spend waiting in the Idle state")]
+    public float idleWaitTime = 2;
+
+    [Tooltip("The vertical distance travelled when hovering up and down")]
+    [Range(0,0.1f)] public float idleHoverDistance = 0.02f;
 
     // Patrol State Variables
     [Header("Patrol State")]
-    public float PatrolWalkTime = 4;
-    public float PatrolDistance = 6;
-    public float PatrolSpeed = 5f;
+
+    [Tooltip("How many seconds to walk in the Patrol state")]
+    public float patrolWalkTime = 4;
+
+    [Tooltip("The distance to travel in the direction of travel before changing directions")]
+    public float patrolDistance = 6;
+
+    [Tooltip("The speed at which to walk, in world units/second")]
+    public float patrolSpeed = 5f;
 
     // State Machine Variables
     [Header("State Machine")]
+
+    [Tooltip("The State the enemy should start in")]
     public State startState;
-    [ReadOnly] public State currentState;
+
+    [Tooltip("The current state, displayed for debugging purposes")]
+    [Space(20)][ReadOnly] public State currentState;
 
 
     // ---- Private Variables ----
@@ -69,11 +83,11 @@ public class EnemyController : MonoBehaviour
         // Move up and down on the spot
         float timeWraped = Time.realtimeSinceStartup % 2; // The time clamped to the range 0-2
         float timePingPong = Mathf.Abs(timeWraped - 1) - 0.5f; // Change the time so it moves between -1 to 1
-        float hover = timePingPong * IdleHoverDistance; // Calculate the hover distance
+        float hover = timePingPong * idleHoverDistance; // Calculate the hover distance
         transform.Translate(0, hover, 0);
 
         // Change state if we've been Idling for long enough
-        if(stateStartTime + IdleWaitTime < Time.realtimeSinceStartup )
+        if(stateStartTime + idleWaitTime < Time.realtimeSinceStartup )
         {
             // Ground the enemy
             Vector3 position = transform.position;
@@ -92,7 +106,7 @@ public class EnemyController : MonoBehaviour
         Vector3 patrolNormal = GetPatrolDirectionNormal(currentPatrolDirection);
 
         // The position we're heading for
-        Vector3 goalPosition = patrolNormal * PatrolDistance;
+        Vector3 goalPosition = patrolNormal * patrolDistance;
 
         // The vector that moves us to the goal position
         Vector3 goalVector = goalPosition - transform.position;
@@ -105,13 +119,13 @@ public class EnemyController : MonoBehaviour
         }
 
         // Calculate how far we'll move in this frame
-        float moveDistance = PatrolSpeed * Time.deltaTime;
+        float moveDistance = patrolSpeed * Time.deltaTime;
 
         // Move the direction we're patrolling
         transform.Translate(patrolNormal * moveDistance);
 
         // Change the state if we've bee patrolling for long enough
-        if (stateStartTime + PatrolWalkTime < Time.realtimeSinceStartup)
+        if (stateStartTime + patrolWalkTime < Time.realtimeSinceStartup)
         {
             ChangeState(State.Idle);
         }

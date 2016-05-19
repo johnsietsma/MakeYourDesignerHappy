@@ -30,7 +30,7 @@ public class EnemyController : MonoBehaviour
 
     // ---- Private Variables ----
 
-    // The dierction of the patrol
+    // The direction of the patrol
     private enum PatrolDirection { Right, Up, Left, Down, Count };
     private PatrolDirection currentPatrolDirection = PatrolDirection.Right;
 
